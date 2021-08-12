@@ -15,3 +15,12 @@ python dask-nvtabular-criteo-benchmark.py \
 --out-path gs://renatoleite-staging/bench-results/ \
 --profile gs://renatoleite-staging/bench-results/report-notebook-gcs.html \
 --devices "0"
+
+### Test 3 - Vertex AI traning job with FUSE storage mounted
+
+python dask-nvtabular-criteo-benchmark.py \
+--data-path /gcs/workshop-datasets/criteo-parque/ \
+--out-path /gcs/renatoleite-staging/bench-results/ \
+--profile /gcs/renatoleite-staging/bench-results/report-notebook-gcs.html \
+--devices "0"
+
