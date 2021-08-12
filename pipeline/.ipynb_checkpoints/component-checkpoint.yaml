@@ -1,3 +1,0 @@
-implementation:
-  container:
-    image: gcr.io/renatoleite-321218/test-nvt
