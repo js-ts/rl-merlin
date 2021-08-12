@@ -4,13 +4,9 @@
 
 python dask-nvtabular-criteo-benchmark.py \
 --data-path /home/jupyter/data \
---out-path /home/renatoleite/merlin-on-gcp/bench-results \
---profile /home/renatoleite/merlin-on-gcp/bench-results/report-notebook-ssd.html \
+--out-path /home/jupyter/bench-results \
+--profile /home/jupyter/bench-results/report-notebook-ssd.html \
 --devices "0"
- <!-- Optional \
---part-mem-frac 0.01 \
---device-limit-frac 0.2 \
---device-pool-frac 0.2 -->
 
 ### Test 2 - Local execution on the Notebook with Google Storage
 
