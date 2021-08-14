@@ -8,3 +8,6 @@ ENV LD_LIBRARY_PATH /usr/local/cuda/lib:/usr/local/cuda/lib64:/usr/local/lib/x86
 ENV PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION python
 
 COPY dask-nvtabular-criteo-benchmark.py ./
+
+ENTRYPOINT [ "python", "dask-nvtabular-criteo-benchmark.py" ]
+# CMD [ "executable" ]

@@ -23,4 +23,3 @@ python dask-nvtabular-criteo-benchmark.py \
 --out-path /gcs/renatoleite-staging/bench-results/ \
 --profile /gcs/renatoleite-staging/bench-results/report-notebook-gcs.html \
 -d "0,1"
-
