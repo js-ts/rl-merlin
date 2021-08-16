@@ -23,3 +23,25 @@ python dask-nvtabular-criteo-benchmark.py \
 --out-path /gcs/renatoleite-staging/bench-results/ \
 --profile /gcs/renatoleite-staging/bench-results/report-notebook-gcs.html \
 -d "0,1"
+
+### To create a DL vm for development
+gcloud compute instances create ml-dev \
+--project=renatoleite-mldemos \
+--zone=us-east1-c \
+--machine-type=n1-standard-8 \
+--network-interface=network-tier=PREMIUM,subnet=default \
+--metadata=install-nvidia-driver=True \
+--maintenance-policy=TERMINATE \
+--service-account=464015718044-compute@developer.gserviceaccount.com \
+--scopes=https://www.googleapis.com/auth/cloud-platform \
+--accelerator=count=1,type=nvidia-tesla-t4 \
+--image-family=common-cu110 \
+--image-project=deeplearning-platform-release \
+--boot-disk-size=200GB \
+--no-boot-disk-auto-delete \
+--boot-disk-type=pd-ssd \
+--boot-disk-device-name=ml-development \
+--no-shielded-secure-boot \
+--shielded-vtpm \
+--shielded-integrity-monitoring \
+--reservation-affinity=any
