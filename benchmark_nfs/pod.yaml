@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nvt-pod
+spec:
+  containers:
+  - name: nvt-bench-nfs
+    image: gcr.io/renatoleite-mldemos/nvt-bench-nfs:latest
+    volumeMounts:
+    - mountPath: /data
+      name: mypvc
+    resources:
+      limits:
+        nvidia.com/gpu: 2
+  volumes:
+  - name: mypvc
+    persistentVolumeClaim:
+      claimName: fileserver-claim
+      readOnly: false
