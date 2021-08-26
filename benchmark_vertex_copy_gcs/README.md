@@ -83,5 +83,5 @@ python run.py \
 python run.py \
 --data-path /data \
 --out-path /output \
---devices "0,1" \
---profile /gcs/renatoleite-criteo-partial/dask-report-local-copy-vertex.html
+--devices "0" \
+--profile /report/dask-report-local-copy-vertex.html

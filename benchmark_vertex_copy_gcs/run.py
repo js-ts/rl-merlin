@@ -54,12 +54,7 @@ def run(args):
                     '--data-path=' + args.data_path, 
                     '--out-path=' + args.out_path,
                     '--devices=' + args.devices,
-                    # '--protocol=' + args.protocol, 
-                    # '--device-limit-frac=' + str(args.device_limit_frac), 
-                    # '--device-pool-frac=' + str(args.device_pool_frac), 
-                    # '--part-mem-frac=' + str(args.part_mem_frac),
-                    # '--num-io-threads=' + str(args.num_io_threads),
-                    '--profile=' + f'{args.profile}{job_name}.html',
+                    '--profile=' + args.profile,
                 ],
             },
         }
@@ -124,26 +119,6 @@ if __name__ == '__main__':
                         default="tcp",
                         type=str,
                         help="Communication protocol to use (Default 'tcp')")
-    # parser.add_argument('--part_mem_frac',
-    #                     type=float,
-    #                     required=False,
-    #                     default=0.125,
-    #                     help='Desired maximum size of each partition as a fraction of total GPU memory')
-    # parser.add_argument('--device_limit_frac',
-    #                     type=float,
-    #                     required=False,
-    #                     default=0.8,
-    #                     help='Device limit fraction')
-    # parser.add_argument('--device_pool_frac',
-    #                     type=float,
-    #                     required=False,
-    #                     default=0.9,
-    #                     help='Device pool fraction')
-    # parser.add_argument("--num-io-threads",
-    #                     default=0,
-    #                     type=int,
-    #                     help="Number of threads to use when writing output data (Default 0). "
-    #                     "If 0 is specified, multi-threading will not be used for IO.")
     parser.add_argument("--devices",
                         default="0,1,2,3,4,5,6,7",
                         type=str,
@@ -152,7 +127,7 @@ if __name__ == '__main__':
                         "The CUDA_VISIBLE_DEVICES environment variable will be used by default")
     parser.add_argument("--profile",
                         metavar="PATH",
-                        default='/gcs/renatoleite-criteo-partial/bench_reports/',
+                        default='/report/report_local_copy.html',
                         type=str,
                         help="Specify a file path to export a Dask profile report (E.g. dask-report.html)."
                         "If this option is excluded from the command, not profile will be exported")

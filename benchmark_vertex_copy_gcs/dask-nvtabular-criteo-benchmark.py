@@ -279,6 +279,11 @@ def main(args):
     logging.info(f"Process runtime[s]     | {process_elapsed_time}")
     logging.info("======================================\n")
 
+    print('Copying file back to gcs.')
+    os.system('gsutil -m cp -r /output/ gs://renatoleite-staging/output/')
+    os.system('gsutil -m cp -r /report/ gs://renatoleite-staging/report/')
+    print('Done copying.')
+
     client.close()
 
 
@@ -441,7 +446,6 @@ def parse_args():
 if __name__ == "__main__":
     logging.basicConfig(format='%(asctime)s - %(message)s', level=logging.INFO, datefmt='%d-%m-%y %H:%M:%S')
 
-    import os
     logging.info('Copying file from GCS.')
     os.system('gsutil -m cp gs://workshop-datasets/criteo-parque/*.parquet /data')
     logging.info('Done copying.')
