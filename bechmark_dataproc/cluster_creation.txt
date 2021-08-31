@@ -1,0 +1,19 @@
+CLUSTER_NAME=dataproc-nvt
+REGION=us-central1
+DASK_RUNTIME=yarn
+gcloud dataproc clusters create $CLUSTER_NAME \
+    --region $REGION \
+    --image-version preview-ubuntu18 \
+    --master-machine-type n1-standard-32 \
+    --master-accelerator type=nvidia-tesla-t4,count=2 \
+    --worker-machine-type n1-standard-32 \
+    --worker-accelerator type=nvidia-tesla-t4,count=2 \
+    --initialization-actions gs://goog-dataproc-initialization-actions-${REGION}/gpu/install_gpu_driver.sh,gs://goog-dataproc-initialization-actions-${REGION}/dask/dask.sh,gs://goog-dataproc-initialization-actions-${REGION}/rapids/rapids.sh \
+    --initialization-action-timeout=60m \
+    --metadata gpu-driver-provider=NVIDIA,dask-runtime=${DASK_RUNTIME},rapids-runtime=DASK,rapids-runtime=0.17 \
+    --enable-component-gateway
+
+
+gcloud dataproc clusters create dataproc-nvt --enable-component-gateway --bucket renatoleite-staging --region us-central1 --subnet default --zone us-central1-b --master-machine-type a2-highgpu-1g --master-boot-disk-type pd-ssd --master-boot-disk-size 500 --master-accelerator nvidia-tesla-a100 --num-workers 2 --worker-machine-type a2-highgpu-1g --worker-boot-disk-type pd-ssd --worker-boot-disk-size 500 --worker-accelerator nvidia-tesla-a100 --image-version 2.0-ubuntu18 --optional-components ANACONDA,JUPYTER,ZEPPELIN --initialization-actions 'gs://goog-dataproc-initialization-actions-us-central1/gpu/install_gpu_driver.sh','gs://goog-dataproc-initialization-actions-us-central1/dask/dask.sh','gs://goog-dataproc-initialization-actions-us-central1/rapids/rapids.sh' --metadata gpu-driver-provider=NVIDIA,dask-runtime=yarn,cudnn-version=8.0.5.39,cuda-url=http://developer.download.nvidia.com/compute/cuda/11.0.2/local_installers/cuda-repo-ubuntu1804-11-0-local_11.0.2-450.51.05-1_amd64.deb,cuda-version=11.0,rapids-runtime=DASK --project renatoleite-mldemos
+
+gcloud dataproc clusters create dataproc-nvt --enable-component-gateway --bucket renatoleite-staging --region us-central1 --subnet default --zone us-central1-b --master-machine-type a2-highgpu-1g --master-boot-disk-type pd-ssd --master-boot-disk-size 500 --master-accelerator nvidia-tesla-a100 --num-workers 2 --worker-machine-type a2-highgpu-1g --worker-boot-disk-type pd-ssd --worker-boot-disk-size 500 --worker-accelerator nvidia-tesla-a100 --image-version 2.0-ubuntu18 --properties dataproc:conda.env.config.uri=gs://renatoleite-dataproc-config/conda.yaml --optional-components ANACONDA,JUPYTER,ZEPPELIN --initialization-actions 'gs://goog-dataproc-initialization-actions-us-central1/gpu/install_gpu_driver.sh','gs://goog-dataproc-initialization-actions-us-central1/dask/dask.sh','gs://goog-dataproc-initialization-actions-us-central1/rapids/rapids.sh' --metadata gpu-driver-provider=NVIDIA,dask-runtime=yarn,cudnn-version=8.0.5.39,cuda-url=http://developer.download.nvidia.com/compute/cuda/11.0.2/local_installers/cuda-repo-ubuntu1804-11-0-local_11.0.2-450.51.05-1_amd64.deb,cuda-version=11.0,rapids-runtime=DASK --project renatoleite-mldemos
