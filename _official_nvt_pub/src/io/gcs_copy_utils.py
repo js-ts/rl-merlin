@@ -30,10 +30,6 @@ class SourceEmpty(Exception):
     pass
 
 
-class PathInterface:
-    pass
-
-
 class GcsCopyUtils:
     '''The Vehicle object contains a lot of vehicles
 
