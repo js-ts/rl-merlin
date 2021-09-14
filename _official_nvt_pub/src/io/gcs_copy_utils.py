@@ -58,9 +58,9 @@ class GcsCopyUtils:
         pass
 
     def _compose_gcloud_download_cmd(gcs_paths: List[str],
-                                local_destination: str, 
-                                extension: str = 'parquet', 
-                                recursive: bool = False) -> str:
+                                    local_destination: str, 
+                                    extension: str = 'parquet', 
+                                    recursive: bool = False) -> str:
         '''
         Valid paths:
             gs://my_bucket/file.parquet # file
@@ -83,13 +83,15 @@ class GcsCopyUtils:
                 else:
                     formated_paths.append(f'{path}/{rec_symbol}.{extension}')
 
-        gcloud_cmd = ['gcloud', 'alpha', 'storage', 'cp', *formated_paths, local_destination]
+        gcloud_cmd = ['gcloud', 'alpha', 'storage', 'cp', 
+                        *formated_paths, local_destination]
 
         return gcloud_cmd
 
     def _compose_gcloud_upload_cmd(local_path: str, 
                                gcs_destination: str) -> List[str]:
-        gcloud_cmd = ['gcloud', 'alpha', 'storage', 'cp', '-r', local_path, gcs_destination]
+        gcloud_cmd = ['gcloud', 'alpha', 'storage', 'cp', 
+                        '-r', local_path, gcs_destination]
         return gcloud_cmd
 
     def _execute_gcloud_cmd(gcloud_cmd: List) -> Dict[str,str]:

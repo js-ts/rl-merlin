@@ -2,4 +2,4 @@ from dataclasses import dataclass
 
 @dataclass
 class Path:
-    path: str
+    path_name: str
