@@ -10,24 +10,11 @@ examples.
   foo = ClassFoo()
   bar = foo.FunctionBar()
 '''
+from local_path import LocalPath
+from gcs_path import GcsPath
 
-from __future__ import annotations
-from google.cloud import storage
-from google.cloud.storage import Blob
-from google.cloud.storage import Bucket
-from typing import Dict, List, NamedTuple
-from pathlib import Path
+from typing import Dict, List, Union
 import subprocess
-
-import fsspec
-
-
-class DataPath(NamedTuple):
-    pass
-
-
-class SourceEmpty(Exception):
-    pass
 
 
 class GcsCopyUtils:
@@ -47,18 +34,70 @@ class GcsCopyUtils:
 
     def __init__(
         self, 
-        gcs_source: List[Blob],
-        local_destination: Path,
-        gcs_destination: Bucket,
+        gcs_source: List[str],
+        local_destination: str,
+        gcs_destination: str,
         recursive: bool,
-        validate: bool,
+        extension: str,
         download_incomplete: bool
     ):
-        # validated_paths
-        pass
+        self.download_incomplete = download_incomplete
+        self.gcs_paths_source = self._generate_path_list(
+                                            path_list=gcs_source,
+                                            recursive=recursive, 
+                                            extension=extension,
+                                            location='gs',
+                                            is_source=True)
 
-    def _compose_gcloud_download_cmd(gcs_paths: List[str],
-                                    local_destination: str, 
+        # TODO: "recursive" presents potential bug, verify.
+        self.local_path_dest = self._generate_path_list(
+                                            path_list=local_destination,
+                                            recursive=recursive, 
+                                            extension=extension,
+                                            location='local',
+                                            is_source=False)
+
+        self.gcs_path_dest = self._generate_path_list(
+                                            path_list=gcs_destination,
+                                            recursive=recursive, 
+                                            extension=extension,
+                                            location='gs',
+                                            is_source=False)
+
+    def _generate_path_list(self, 
+                            path_list: List[str], 
+                            recursive: bool,
+                            extension: str,
+                            location: str, 
+                            is_source: bool
+                            ) -> List[Union[GcsPath,LocalPath]]:
+        if location == 'gs':
+            path_list = [GcsPath(path_name=path, 
+                                 extension=extension,
+                                 recursive=recursive,
+                                 is_source=is_source) 
+                                 for path in path_list]
+        elif location == 'local':
+            path_list = [LocalPath(path_name=path, 
+                                 extension=extension,
+                                 recursive=recursive,
+                                 is_source=is_source) 
+                                 for path in path_list]
+        return path_list
+
+    def generate_path_validation(self, 
+        path_list: List[Union[GcsPath, LocalPath]]
+                       ) -> List[Union[GcsPath, LocalPath]]:
+        return [path for path in path_list 
+                        if path.path_metadata.is_valid_path]
+
+    # def compose_gcloud_download_cmd(gcs_paths: List[str],
+    #                                 local_destination: str, 
+    #                                 extension: str = 'parquet', 
+    #                                 recursive: bool = False) -> str:
+
+    def compose_gcloud_download_cmd(gcs_paths: List[GcsPath],
+                                    local_destination: List[LocalPath], 
                                     extension: str = 'parquet', 
                                     recursive: bool = False) -> str:
         '''
@@ -66,40 +105,41 @@ class GcsCopyUtils:
             gs://my_bucket/file.parquet # file
             gs://my_bucket/subfolder or gs://my_bucket/subfolder/ # path
             gs://my_bucket/subfolder/* # all files, 1 level
-            gs://my_bucket/subfolder/** # all files, n levels
+            gs://my_bucket/subfolder/** # all files, all levels
         '''
-
         rec_symbol = '**' if recursive else '*'
-
         formated_paths = []
-        for path in gcs_paths:
-            if path.endswith(f'.{extension}'):
-                formated_paths.append(path)
+
+        for i in gcs_paths:
+            if not i.path.path_metadata.is_directory:
+                formated_paths.append(i.path.path_name)
             else:
-                if path.endswith('/'):
-                    formated_paths.append(f'{path}{rec_symbol}.{extension}')
-                elif path.endswith('/*') or path.endswith('/**'):
-                    formated_paths.append(f'{path}.{extension}')
+                if i.path.path_name.endswith('/'):
+                    formated_paths.append(
+                        f'{i.path.path_name}{rec_symbol}.{extension}')
+                elif (i.path.path_name.endswith('/*') 
+                        or i.path.path_name.endswith('/**')):
+                    formated_paths.append(f'{i.path.path_name}.{extension}')
                 else:
-                    formated_paths.append(f'{path}/{rec_symbol}.{extension}')
+                    formated_paths.append(
+                        f'{i.path.path_name}/{rec_symbol}.{extension}')
 
         gcloud_cmd = ['gcloud', 'alpha', 'storage', 'cp', 
-                        *formated_paths, local_destination]
+                        *formated_paths, local_destination[0].path.path_name]
 
         return gcloud_cmd
 
-    def _compose_gcloud_upload_cmd(local_path: str, 
-                               gcs_destination: str) -> List[str]:
+    def compose_gcloud_upload_cmd(local_path: str, 
+                                  gcs_destination: str) -> List[str]:
         gcloud_cmd = ['gcloud', 'alpha', 'storage', 'cp', 
                         '-r', local_path, gcs_destination]
         return gcloud_cmd
 
-    def _execute_gcloud_cmd(gcloud_cmd: List) -> Dict[str,str]:
+    def execute_gcloud_cmd(gcloud_cmd: List) -> Dict[str,str]:
         output = subprocess.run(gcloud_cmd, capture_output=True, text=True)
         return {'returncode': output.returncode,
                 'stdout': output.stdout,
                 'stderr': output.stderr}
-
 
 
     def foo(self):
@@ -138,47 +178,3 @@ class GcsCopyUtils:
             IOError: An error occurred accessing the smalltable.
         '''
         pass
-
-
-
-
-
-
-
-a = Path('/home/renatoleite/')
-a.exists()
-str(a)
-
-isinstance([], list)
-
-
-
-import gcsfs
-t2 = gcsfs.GCSFileSystem()
-test = fsspec.filesystem('gs')
-test.exists('renatoleite-criteo-partial/data/day_0.parquet')
-test.info('renatoleite-criteo-partial/')
-test.info
-
-type(test)
-
-t2.info('renatoleite-criteo-partial/data/')
-t2.cat('renatoleite-criteo-partial/data/')
-
-files = t2.walk('renatoleite-criteo-partial/')
-a = list(files)
-
-
-for i in a:
-    if not i[2]:
-        print(f'Path {i[0]}, Folders {i[1]} and no files.')
-    else:
-        print(f'Path {i[0]}, Folders {i[1]} and Files {i[2]}')
-
-all_files = []
-for files in a:
-    for file in files[2]:
-        if file: all_files.append(file)
-
-all_files
-

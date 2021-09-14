@@ -9,15 +9,10 @@ class GenericPath:
     def __init__(self, 
                  path_name: str, 
                  extension: str, 
-                 path_metadata: Dict[str,Union[bool, int, str]] = None):
-        self.path_name = Path(path_name=path_name)
+                 path_metadata: Dict[str,Union[bool,int,str]] = None):
+        self.path = Path(path_name=path_name)
         self.extension = Extension(ext_name=extension)
-
-        # Validation was performed
-        if path_metadata:
-            self.path_metadata = PathMetadata(**path_metadata)
-        else:
-            self.path_metadata = {}
+        self.path_metadata = PathMetadata(**path_metadata)
 
     def _path_check(self):
         raise NotImplementedError("""Check if it is a valid path""")
