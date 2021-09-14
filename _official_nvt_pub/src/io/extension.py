@@ -2,4 +2,4 @@ from dataclasses import dataclass
 
 @dataclass
 class Extension:
-    extension: str
+    ext_name: str

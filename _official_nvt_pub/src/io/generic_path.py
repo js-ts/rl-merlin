@@ -1,6 +1,7 @@
-from .path import Path
-from .extension import Extension
-from .path_metadata import PathMetadata
+from path import Path
+from extension import Extension
+from path_metadata import PathMetadata
+
 from typing import Dict, Union, List
 
 class GenericPath:
@@ -10,11 +11,13 @@ class GenericPath:
                  extension: str, 
                  path_metadata: Dict[str,Union[bool, int, str]] = None):
         self.path_name = Path(path_name=path_name)
-        self.extension = Extension(extension=extension)
+        self.extension = Extension(ext_name=extension)
 
         # Validation was performed
         if path_metadata:
             self.path_metadata = PathMetadata(**path_metadata)
+        else:
+            self.path_metadata = {}
 
     def _path_check(self):
         raise NotImplementedError("""Check if it is a valid path""")
@@ -28,5 +31,5 @@ class GenericPath:
     def _get_num_files(self):
         raise NotImplementedError("""Count number of files with extension in directory""")
 
-    def _set_protocol(self):
+    def _get_protocol(self):
         raise NotImplementedError("""Retrive protocol from file path""")
