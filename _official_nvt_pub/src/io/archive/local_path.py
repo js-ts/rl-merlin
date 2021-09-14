@@ -1,10 +1,9 @@
-from typing import Dict, Union
 from generic_path import GenericPath
+from fsspec import get_fs_token_paths
 
-from fsspec.core import get_fs_token_paths
+from typing import Dict, Union
 
-
-class GcsPath(GenericPath):
+class LocalPath(GenericPath):
     def __init__(self, 
                  path_name: str, 
                  extension: str, 
@@ -27,23 +26,25 @@ class GcsPath(GenericPath):
                     is_source: bool) -> Dict[str,Union[bool,str,int]]:
         """Check if it is a valid path"""
         path_metadata = {}
+
         path_metadata['is_path_exists'] = self._is_path_exists(path_name)
         if path_metadata['is_path_exists']:
             path_metadata['protocol'] = self._get_protocol()
             if path_metadata['protocol'] == 'file':
                 path_metadata['is_directory'] = self._is_directory(path_name)
                 # Source must have at least one file with {extension}
-                if is_source:
-                    path_metadata['num_files'] = self._get_num_files(
+                path_metadata['num_files'] = self._get_num_files(
                                                 path_name,
                                                 path_metadata['is_directory'],
                                                 recursive,
                                                 extension)
+                if is_source:
                     if path_metadata['num_files'] > 0:
                         path_metadata['is_valid_path'] = True
-                # If destination, path can be empty
-                elif path_metadata['is_directory']:
-                    path_metadata['is_valid_path'] = True
+                else:
+                    if path_metadata['is_directory']:
+                        path_metadata['is_valid_path'] = True
+
         return path_metadata
 
     def _is_path_exists(self, path_name: str) -> bool:
@@ -74,9 +75,6 @@ class GcsPath(GenericPath):
                 file_list = self.fs_spec.glob(f'{path_name}*.{extension}')
             return len(file_list)
 
-    def _get_protocol(self) -> str:
+    def _get_protocol(self):
         """Retrive protocol from file path"""
-        if 'gs' in self.fs_spec.protocol:
-            return 'gs'
-        else:
-            return self.fs_spec.protocol
+        return self.fs_spec.protocol

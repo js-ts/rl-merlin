@@ -1,105 +1,82 @@
-'''A one line summary of the module or program, terminated by a period.
+# Copyright 2014 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
-Leave one blank line.  The rest of this docstring should contain an
-overall description of the module or program.  Optionally, it may also
-contain a brief description of exported classes and functions and/or usage
-examples.
 
-  Typical usage example:
-
-  foo = ClassFoo()
-  bar = foo.FunctionBar()
+'''Wrapper around `gcloud alpha storage` to help perform download
+or upload from/to GCS.
 '''
-from local_path import LocalPath
-from gcs_path import GcsPath
+
 
 from typing import Dict, List, Union
 import subprocess
 
 
 class GcsCopyUtils:
-    '''The Vehicle object contains a lot of vehicles
+    '''Helper class to perform download/upload from/to GCS
+    using `gcloud alpha storage` command line interface.
 
     Parameters
     ----------
-        says_str : str
-            a formatted string to print out what the animal says
-        name : str
-            the name of the animal
-        sound : str
-            the sound that the animal makes
-        num_legs : int
-            the number of legs the animal has (default 4)
+        gcs_source: Union[str,List[str]]
+            Path or a list of paths to be DOWNLOADED from GCS.
+            The path can be a single file (one path), a list with multiple 
+            files (multiple paths), one folder (one path), multiple folders 
+            (multiple paths) or a combination of files and folders from GCS.
+            Examples:
+                (one file): 'gs://my_bucket/file.parquet'
+                (multiple files): ['gs://my_bucket/file1.parquet',
+                                   'gs://my_bucket/file1.parquet']
+                (one folder): 'gs://my_bucket/subfolder'
+                (multiple folders): ['gs://my_bucket/subfolder1',
+                                     'gs://my_bucket/subfolder2']
+                (combination): ['gs://my_bucket/file1.parquet',
+                                'gs://my_bucket/subfolder2']
+                There is a flag specifically to indicate recursion during 
+                download, but if specified in the path, the flag will be 
+                ignored. Examples:
+                (all files, 1 level): gs://my_bucket/subfolder/*
+                (all files, all levels): gs://my_bucket/subfolder/**
+
+        gcs_source: Union[str,List[str]]
+        local_download_path: str
+        local_upload_path: str
+        gcs_dest: str
+        recursive: bool
+        extension: str
     '''
 
     def __init__(
         self, 
-        gcs_source: List[str],
-        local_destination: str,
-        gcs_destination: str,
+        gcs_source: Union[str,List[str]],
+        local_download_path: str,
+        local_upload_path: str,
+        gcs_dest: str,
         recursive: bool,
-        extension: str,
-        download_incomplete: bool
+        extension: str
     ):
-        self.download_incomplete = download_incomplete
-        self.gcs_paths_source = self._generate_path_list(
-                                            path_list=gcs_source,
-                                            recursive=recursive, 
-                                            extension=extension,
-                                            location='gs',
-                                            is_source=True)
+        if isinstance(gcs_source, list):
+            self.gcs_source = gcs_source
+        elif isinstance(gcs_source, str):
+            self.gcs_source = [gcs_source]
 
-        # TODO: "recursive" presents potential bug, verify.
-        self.local_path_dest = self._generate_path_list(
-                                            path_list=local_destination,
-                                            recursive=recursive, 
-                                            extension=extension,
-                                            location='local',
-                                            is_source=False)
+        self.gcs_dest = gcs_dest
+        self.local_download_path = local_download_path
+        self.local_upload_path = local_upload_path
+        self.recursive = recursive
+        self.extension = extension
 
-        self.gcs_path_dest = self._generate_path_list(
-                                            path_list=gcs_destination,
-                                            recursive=recursive, 
-                                            extension=extension,
-                                            location='gs',
-                                            is_source=False)
-
-    def _generate_path_list(self, 
-                            path_list: List[str], 
-                            recursive: bool,
-                            extension: str,
-                            location: str, 
-                            is_source: bool
-                            ) -> List[Union[GcsPath,LocalPath]]:
-        if location == 'gs':
-            path_list = [GcsPath(path_name=path, 
-                                 extension=extension,
-                                 recursive=recursive,
-                                 is_source=is_source) 
-                                 for path in path_list]
-        elif location == 'local':
-            path_list = [LocalPath(path_name=path, 
-                                 extension=extension,
-                                 recursive=recursive,
-                                 is_source=is_source) 
-                                 for path in path_list]
-        return path_list
-
-    def generate_path_validation(self, 
-        path_list: List[Union[GcsPath, LocalPath]]
-                       ) -> List[Union[GcsPath, LocalPath]]:
-        return [path for path in path_list 
-                        if path.path_metadata.is_valid_path]
-
-    # def compose_gcloud_download_cmd(gcs_paths: List[str],
-    #                                 local_destination: str, 
-    #                                 extension: str = 'parquet', 
-    #                                 recursive: bool = False) -> str:
-
-    def compose_gcloud_download_cmd(gcs_paths: List[GcsPath],
-                                    local_destination: List[LocalPath], 
-                                    extension: str = 'parquet', 
-                                    recursive: bool = False) -> str:
+    def compose_gcloud_download_cmd(self) -> str:
         '''
         Valid paths:
             gs://my_bucket/file.parquet # file
@@ -107,40 +84,37 @@ class GcsCopyUtils:
             gs://my_bucket/subfolder/* # all files, 1 level
             gs://my_bucket/subfolder/** # all files, all levels
         '''
-        rec_symbol = '**' if recursive else '*'
+        rec_symbol = '**' if self.recursive else '*'
         formated_paths = []
 
-        for i in gcs_paths:
-            if not i.path.path_metadata.is_directory:
-                formated_paths.append(i.path.path_name)
+        for path in self.gcs_source:
+            if path.endswith(f'.{self.extension}'):
+                formated_paths.append(path)
             else:
-                if i.path.path_name.endswith('/'):
+                if path.endswith('/'):
                     formated_paths.append(
-                        f'{i.path.path_name}{rec_symbol}.{extension}')
-                elif (i.path.path_name.endswith('/*') 
-                        or i.path.path_name.endswith('/**')):
-                    formated_paths.append(f'{i.path.path_name}.{extension}')
+                        f'{path}{rec_symbol}.{self.extension}')
+                elif (path.endswith('/*') or path.endswith('/**')):
+                    formated_paths.append(f'{path}.{self.extension}')
                 else:
                     formated_paths.append(
-                        f'{i.path.path_name}/{rec_symbol}.{extension}')
+                        f'{path}/{rec_symbol}.{self.extension}')
 
         gcloud_cmd = ['gcloud', 'alpha', 'storage', 'cp', 
-                        *formated_paths, local_destination[0].path.path_name]
+                            *formated_paths, self.local_download_path]
 
         return gcloud_cmd
 
-    def compose_gcloud_upload_cmd(local_path: str, 
-                                  gcs_destination: str) -> List[str]:
+    def compose_gcloud_upload_cmd(self) -> List[str]:
         gcloud_cmd = ['gcloud', 'alpha', 'storage', 'cp', 
-                        '-r', local_path, gcs_destination]
+                            '-r', self.local_download_path, self.gcs_dest]
         return gcloud_cmd
 
-    def execute_gcloud_cmd(gcloud_cmd: List) -> Dict[str,str]:
+    def execute_gcloud_cmd(self, gcloud_cmd: List[str]) -> Dict[str,str]:
         output = subprocess.run(gcloud_cmd, capture_output=True, text=True)
         return {'returncode': output.returncode,
                 'stdout': output.stdout,
                 'stderr': output.stderr}
-
 
     def foo(self):
         '''Fetches rows from a Smalltable.
