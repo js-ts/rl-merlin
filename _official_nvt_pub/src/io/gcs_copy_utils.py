@@ -13,7 +13,7 @@
 # limitations under the License.
 
 
-'''Wrapper around `gcloud alpha storage` to help perform download
+'''Wrapper around `gcloud alpha storage` tool to help perform download
 or upload from/to GCS.
 '''
 
@@ -42,18 +42,33 @@ class GcsCopyUtils:
                                      'gs://my_bucket/subfolder2']
                 (combination): ['gs://my_bucket/file1.parquet',
                                 'gs://my_bucket/subfolder2']
-                There is a flag specifically to indicate recursion during 
-                download, but if specified in the path, the flag will be 
-                ignored. Examples:
+                There is an attribute specifically to indicate recursion 
+                during download, but if a flag specified in the path, the flag 
+                will be ignored. Examples:
                 (all files, 1 level): gs://my_bucket/subfolder/*
                 (all files, all levels): gs://my_bucket/subfolder/**
-
-        gcs_source: Union[str,List[str]]
         local_download_path: str
+            Single path in the local filesystem where objects will be 
+            downloaded to. This must be a folder and the runtime must have 
+            write access to it. Example: '/home/user/data'.
         local_upload_path: str
+            Single path in the local filesystems which will be recursively 
+            uploaded to GCS. The runtime must have read access to the path.
+            Example: '/home/user/output'.
         gcs_dest: str
+            Single path in google cloud storage where objects will be
+            uploaded to. This must be a bucket or folder, and the runtime 
+            must have write access to it. Examples:
+                (bucket, root folder) 'gs://mybucket'
+                (folder) 'gs://mybucket/myfolder'
         recursive: bool
-        extension: str
+            Variable used in the download operation. If set to True, will 
+            search recursively for objects with a specific extension.
+        extension: str = 'txt'
+            Extension of the object to be downloaded. Examples: 'parquet', 
+            'csv', 'txt', etc.
+            This variable cannot be empty, otherwise, it will be treated as a
+            folder in the path.
     '''
 
     def __init__(
@@ -62,8 +77,8 @@ class GcsCopyUtils:
         local_download_path: str,
         local_upload_path: str,
         gcs_dest: str,
-        recursive: bool,
-        extension: str
+        recursive: bool = False,
+        extension: str = 'parquet'
     ):
         if isinstance(gcs_source, list):
             self.gcs_source = gcs_source
@@ -77,13 +92,8 @@ class GcsCopyUtils:
         self.extension = extension
 
     def compose_gcloud_download_cmd(self) -> str:
-        '''
-        Valid paths:
-            gs://my_bucket/file.parquet # file
-            gs://my_bucket/subfolder or gs://my_bucket/subfolder/ # path
-            gs://my_bucket/subfolder/* # all files, 1 level
-            gs://my_bucket/subfolder/** # all files, all levels
-        '''
+        '''Composes a gcloud command for the download operation,
+        with the destination provided, to be executed'''
         rec_symbol = '**' if self.recursive else '*'
         formated_paths = []
 
@@ -101,54 +111,20 @@ class GcsCopyUtils:
                         f'{path}/{rec_symbol}.{self.extension}')
 
         gcloud_cmd = ['gcloud', 'alpha', 'storage', 'cp', 
-                            *formated_paths, self.local_download_path]
+                        *formated_paths, self.local_download_path]
 
         return gcloud_cmd
 
     def compose_gcloud_upload_cmd(self) -> List[str]:
+        '''Composes a gcloud command for the upload operation,
+        with the destination provided, to be executed'''
         gcloud_cmd = ['gcloud', 'alpha', 'storage', 'cp', 
                             '-r', self.local_download_path, self.gcs_dest]
         return gcloud_cmd
 
     def execute_gcloud_cmd(self, gcloud_cmd: List[str]) -> Dict[str,str]:
+        '''Execute a gcloud alpha storage command and return stderr/stdout'''
         output = subprocess.run(gcloud_cmd, capture_output=True, text=True)
         return {'returncode': output.returncode,
                 'stdout': output.stdout,
                 'stderr': output.stderr}
-
-    def foo(self):
-        '''Fetches rows from a Smalltable.
-
-        Retrieves rows pertaining to the given keys from the Table instance
-        represented by table_handle.  String keys will be UTF-8 encoded.
-
-        Parameters
-        ----------
-        content_type: str
-            If not None, set the content-type to this value
-        content_encoding: str
-            If not None, set the content-encoding.
-            See https://cloud.google.com/storage/docs/transcoding
-        kw_args: key-value pairs like field="value" or field=None
-            value must be string to add or modify, or None to delete
-
-        Returns
-        -------
-        Entire metadata after update (even if only path is passed)
-        A dict mapping keys to the corresponding table row data
-        fetched. Each row is represented as a tuple of strings. For
-        example:
-
-        {b'Serak': ('Rigel VII', 'Preparer'),
-        b'Zim': ('Irk', 'Invader'),
-        b'Lrrr': ('Omicron Persei 8', 'Emperor')}
-
-        Returned keys are always bytes.  If a key from the keys argument is
-        missing from the dictionary, then that row was not found in the
-        table (and require_all_keys must have been False).
-        
-        Raises
-        ------
-            IOError: An error occurred accessing the smalltable.
-        '''
-        pass
